@@ -1,36 +1,35 @@
-name: Build iOS Project
+name: Build iOS IPA
 on: [push]
 
 jobs:
-  build-ios:
+  build-ipa:
     runs-on: macos-latest
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
       
-    - name: Download Godot 4.5.1
+    - name: Build IPA from Xcode project
       run: |
-        # Download Godot 4.5.1 for macOS
-        wget https://github.com/godotengine/godot/releases/download/4.5.1-stable/Godot_v4.5.1-stable_macos.universal.zip
-        unzip Godot_v4.5.1-stable_macos.universal.zip
-        chmod +x Godot.app/Contents/MacOS/Godot
-        sudo mv Godot.app/Contents/MacOS/Godot /usr/local/bin/godot
+        # Navigate to xcode project
+        cd xcode-project
         
-    - name: Setup export templates
-      run: |
-        # Create export templates directory
-        mkdir -p ~/.local/share/godot/export_templates/4.5.1.stable
-        # Download export templates
-        wget https://github.com/godotengine/godot/releases/download/4.5.1-stable/Godot_v4.5.1-stable_export_templates.tpz
-        unzip Godot_v4.5.1-stable_export_templates.tpz -d ~/.local/share/godot/export_templates/4.5.1.stable/
+        # Build the IPA file
+        xcodebuild -project dagi.xcodeproj \
+          -scheme dagi \
+          -configuration Release \
+          -destination 'generic/platform=iOS' \
+          -archivePath build/dagi.xcarchive \
+          archive
         
-    - name: Export iOS project
-      run: |
-        # Export the project as Xcode project
-        godot --headless --export-release "iOS" project.xcodeproj
-      
-    - name: Upload Xcode Project
+        # Export IPA
+        xcodebuild -exportArchive \
+          -archivePath build/dagi.xcarchive \
+          -exportOptionsPlist ExportOptions.plist \
+          -exportPath build \
+          -allowProvisioningUpdates
+        
+    - name: Upload IPA file
       uses: actions/upload-artifact@v3
       with:
-        name: xcode-project
-        path: project.xcodeproj
+        name: ios-ipa
+        path: xcode-project/build/*.ipa
